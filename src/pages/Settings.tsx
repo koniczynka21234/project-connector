@@ -70,7 +70,7 @@ export default function Settings() {
 
         <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
           {/* Notification Settings */}
-          <Card className="bg-zinc-900/50 border-zinc-800">
+          <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Bell className="w-5 h-5 text-pink-400" />
@@ -98,7 +98,7 @@ export default function Settings() {
                       value={settings.soundType}
                       onValueChange={(value) => updateSettings({ soundType: value })}
                     >
-                      <SelectTrigger className="bg-zinc-800 border-zinc-700">
+                      <SelectTrigger className="bg-secondary border-border">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -138,7 +138,7 @@ export default function Settings() {
           </Card>
 
           {/* Display Settings */}
-          <Card className="bg-zinc-900/50 border-zinc-800">
+          <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Monitor className="w-5 h-5 text-pink-400" />
@@ -153,7 +153,7 @@ export default function Settings() {
                   value={settings.theme}
                   onValueChange={(value: 'dark' | 'light' | 'system') => updateSettings({ theme: value })}
                 >
-                  <SelectTrigger className="bg-zinc-800 border-zinc-700">
+                    <SelectTrigger className="bg-secondary border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -207,7 +207,7 @@ export default function Settings() {
           </Card>
 
           {/* Behavior Settings */}
-          <Card className="bg-zinc-900/50 border-zinc-800">
+          <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-lg">Zachowanie</CardTitle>
               <CardDescription>Dostosuj działanie aplikacji</CardDescription>
@@ -219,7 +219,7 @@ export default function Settings() {
                   value={settings.defaultLeadView}
                   onValueChange={(value: 'list' | 'kanban') => updateSettings({ defaultLeadView: value })}
                 >
-                  <SelectTrigger className="bg-zinc-800 border-zinc-700">
+                  <SelectTrigger className="bg-secondary border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
