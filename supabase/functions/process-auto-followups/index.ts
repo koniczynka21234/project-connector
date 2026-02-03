@@ -100,15 +100,16 @@ async function sendEmailViaZoho(
   to: string,
   subject: string,
   body: string
-): Promise<boolean> {
+): Promise<{ success: boolean; error?: string }> {
   try {
     const accountsResponse = await fetch("https://mail.zoho.eu/api/accounts", {
       headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
     });
 
     if (!accountsResponse.ok) {
-      console.error("Failed to get Zoho accounts:", await accountsResponse.text());
-      return false;
+      const errorText = await accountsResponse.text();
+      console.error("Failed to get Zoho accounts:", errorText);
+      return { success: false, error: `Błąd pobierania kont Zoho: ${accountsResponse.status}` };
     }
 
     const accountsData = await accountsResponse.json();
@@ -120,7 +121,7 @@ async function sendEmailViaZoho(
 
     if (!account) {
       console.error(`Account ${fromEmail} not found in Zoho accounts`);
-      return false;
+      return { success: false, error: `Konto ${fromEmail} nie znalezione w Zoho` };
     }
 
     // Send with sender name "Aurine" for both accounts
@@ -143,15 +144,16 @@ async function sendEmailViaZoho(
     );
 
     if (!sendResponse.ok) {
-      console.error("Failed to send email:", await sendResponse.text());
-      return false;
+      const errorText = await sendResponse.text();
+      console.error("Failed to send email:", errorText);
+      return { success: false, error: `Błąd wysyłki: ${sendResponse.status} - ${errorText.substring(0, 100)}` };
     }
 
     console.log(`Email sent successfully from Aurine <${fromEmail}> to ${to}`);
-    return true;
-  } catch (e) {
+    return { success: true };
+  } catch (e: any) {
     console.error("Send email error:", e);
-    return false;
+    return { success: false, error: `Wyjątek: ${e.message}` };
   }
 }
 
@@ -349,9 +351,9 @@ serve(async (req) => {
         const subject = replacePlaceholders(followUp1Template.subject, lead);
         const body = replacePlaceholders(followUp1Template.body, lead);
 
-        const sent = await sendEmailViaZoho(accessToken, emailFrom, lead.email, subject, body);
+        const sendResult = await sendEmailViaZoho(accessToken, emailFrom, lead.email, subject, body);
         
-        if (sent) {
+        if (sendResult.success) {
           // Update additional fields (flag already set by claim)
           await supabase.from("leads").update({
             email_follow_up_1_date: today,
@@ -374,7 +376,7 @@ serve(async (req) => {
         } else {
           // Revert the claim since sending failed
           await supabase.from("leads").update({ email_follow_up_1_sent: false }).eq("id", lead.id);
-          await logFollowUpSend(supabase, lead.id, lead.salon_name, lead.email, emailFrom, followUp1Template.name || "Follow-up 1", "followup_1", "failed", "Błąd wysyłki Zoho");
+          await logFollowUpSend(supabase, lead.id, lead.salon_name, lead.email, emailFrom, followUp1Template.name || "Follow-up 1", "followup_1", "failed", sendResult.error || "Błąd wysyłki Zoho");
           results.failed++;
         }
       } catch (e: any) {
@@ -420,9 +422,9 @@ serve(async (req) => {
         const subject = replacePlaceholders(followUp2Template.subject, lead);
         const body = replacePlaceholders(followUp2Template.body, lead);
 
-        const sent = await sendEmailViaZoho(accessToken, emailFrom, lead.email, subject, body);
+        const sendResult = await sendEmailViaZoho(accessToken, emailFrom, lead.email, subject, body);
         
-        if (sent) {
+        if (sendResult.success) {
           // Update additional fields (flag already set by claim)
           await supabase.from("leads").update({
             email_follow_up_2_date: today,
@@ -445,7 +447,7 @@ serve(async (req) => {
         } else {
           // Revert the claim since sending failed
           await supabase.from("leads").update({ email_follow_up_2_sent: false }).eq("id", lead.id);
-          await logFollowUpSend(supabase, lead.id, lead.salon_name, lead.email, emailFrom, followUp2Template.name || "Follow-up 2", "followup_2", "failed", "Błąd wysyłki Zoho");
+          await logFollowUpSend(supabase, lead.id, lead.salon_name, lead.email, emailFrom, followUp2Template.name || "Follow-up 2", "followup_2", "failed", sendResult.error || "Błąd wysyłki Zoho");
           results.failed++;
         }
       } catch (e: any) {
