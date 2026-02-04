@@ -107,41 +107,62 @@ export function ImportantNotifications() {
   const [notifications, setNotifications] = useState<ImportantNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchNotifications = async () => {
+    if (!user?.id) return;
+    
+    // Najważniejsze powiadomienia
+    const importantTypes = [
+      'contract_expired',
+      'contract_expiring', 
+      'payment_due',
+      'invoice_due',
+      'invoice_required',
+      'task_overdue',
+      'task_assigned',
+      'mention',
+      'client_assigned',
+      'document_shared',
+      'new_client'
+    ];
+    
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_read', false)
+      .in('type', importantTypes)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (!error && data) {
+      setNotifications(data);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!user?.id) return;
-      
-      // Najważniejsze powiadomienia
-      const importantTypes = [
-        'contract_expired',
-        'contract_expiring', 
-        'payment_due',
-        'invoice_due',
-        'invoice_required',
-        'task_overdue',
-        'task_assigned',
-        'mention',
-        'client_assigned',
-        'document_shared',
-        'new_client'
-      ];
-      
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_read', false)
-        .in('type', importantTypes)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (!error && data) {
-        setNotifications(data);
-      }
-      setLoading(false);
-    };
-
     fetchNotifications();
+  }, [user?.id]);
+
+  // Realtime subscription for notifications
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('important-notifications-updates')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'notifications',
+        filter: `user_id=eq.${user.id}`
+      }, () => {
+        fetchNotifications();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user?.id]);
 
   const markAsRead = async (id: string, e: React.MouseEvent) => {
