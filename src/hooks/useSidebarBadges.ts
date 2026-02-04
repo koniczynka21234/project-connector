@@ -232,18 +232,32 @@ export function useSidebarBadges(userId: string | undefined) {
   useEffect(() => {
     if (!userId) return;
 
+    // Debounce refresh to avoid multiple rapid updates
+    let refreshTimeout: ReturnType<typeof setTimeout> | null = null;
+    const debouncedRefresh = () => {
+      if (refreshTimeout) clearTimeout(refreshTimeout);
+      refreshTimeout = setTimeout(() => {
+        // Force cache invalidation for realtime updates
+        cachedBadges = null;
+        lastFetchTime = 0;
+        loadData(true);
+      }, 300);
+    };
+
     const channel = supabase
       .channel('sidebar-badge-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => loadData(true))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => loadData(true))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => loadData(true))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, () => loadData(true))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => loadData(true))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_metrics' }, () => loadData(true))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_reports' }, () => loadData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, debouncedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, debouncedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, debouncedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, debouncedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, debouncedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_metrics' }, debouncedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_reports' }, debouncedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'auto_followup_logs' }, debouncedRefresh)
       .subscribe();
 
     return () => {
+      if (refreshTimeout) clearTimeout(refreshTimeout);
       supabase.removeChannel(channel);
     };
   }, [userId, loadData]);
