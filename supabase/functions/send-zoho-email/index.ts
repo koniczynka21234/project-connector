@@ -15,39 +15,33 @@ interface SendEmailRequest {
   followUpType?: "cold_email" | "email_follow_up_1" | "email_follow_up_2";
 }
 
-// Get Zoho credentials based on email account
-function getZohoCredentials(emailFrom: string): { clientId: string; clientSecret: string; refreshToken: string } | null {
-  if (emailFrom === "kontakt@aurine.pl") {
-    const clientId = Deno.env.get("ZOHO_KONTAKT_CLIENT_ID");
-    const clientSecret = Deno.env.get("ZOHO_KONTAKT_CLIENT_SECRET");
-    const refreshToken = Deno.env.get("ZOHO_KONTAKT_REFRESH_TOKEN");
-    
-    if (!clientId || !clientSecret || !refreshToken) {
-      console.error("Missing ZOHO_KONTAKT credentials");
-      return null;
-    }
-    return { clientId, clientSecret, refreshToken };
-  } else if (emailFrom === "biuro@aurine.pl") {
-    const clientId = Deno.env.get("ZOHO_BIURO_CLIENT_ID");
-    const clientSecret = Deno.env.get("ZOHO_BIURO_CLIENT_SECRET");
-    const refreshToken = Deno.env.get("ZOHO_BIURO_REFRESH_TOKEN");
-    
-    if (!clientId || !clientSecret || !refreshToken) {
-      console.error("Missing ZOHO_BIURO credentials");
-      return null;
-    }
-    return { clientId, clientSecret, refreshToken };
+// Get Zoho credentials from database
+async function getZohoCredentialsFromDB(supabase: any, emailFrom: string): Promise<{ clientId: string; clientSecret: string; refreshToken: string } | null> {
+  const { data, error } = await supabase
+    .from("zoho_credentials")
+    .select("*")
+    .eq("email_account", emailFrom)
+    .single();
+
+  if (error || !data) {
+    console.error(`No credentials found for ${emailFrom}:`, error?.message);
+    return null;
   }
-  
-  console.error(`Unknown email account: ${emailFrom}`);
-  return null;
+
+  return {
+    clientId: data.client_id,
+    clientSecret: data.client_secret,
+    refreshToken: data.refresh_token,
+  };
 }
 
-async function getZohoAccessToken(emailFrom: string): Promise<string> {
-  const credentials = getZohoCredentials(emailFrom);
+async function getZohoAccessToken(supabase: any, emailFrom: string): Promise<string> {
+  const credentials = await getZohoCredentialsFromDB(supabase, emailFrom);
   if (!credentials) {
-    throw new Error(`No credentials for ${emailFrom}`);
+    throw new Error(`Brak credentials dla ${emailFrom} w tabeli zoho_credentials`);
   }
+
+  console.log(`Getting Zoho token for ${emailFrom}`);
 
   const response = await fetch("https://accounts.zoho.eu/oauth/v2/token", {
     method: "POST",
@@ -62,13 +56,22 @@ async function getZohoAccessToken(emailFrom: string): Promise<string> {
     }),
   });
 
+  const responseText = await response.text();
+  console.log(`Zoho token response: status=${response.status}, body=${responseText}`);
+
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`Zoho token error for ${emailFrom}:`, errorText);
-    throw new Error("Failed to get Zoho access token");
+    console.error(`Zoho token error for ${emailFrom}:`, responseText);
+    throw new Error(`Błąd tokena Zoho: ${response.status} - ${responseText.substring(0, 100)}`);
   }
 
-  const data = await response.json();
+  const data = JSON.parse(responseText);
+  
+  if (!data.access_token) {
+    console.error(`No access_token in response for ${emailFrom}:`, data);
+    throw new Error("Brak access_token w odpowiedzi Zoho");
+  }
+
+  console.log(`Successfully got access token for ${emailFrom}`);
   return data.access_token;
 }
 
@@ -78,53 +81,61 @@ async function sendEmailViaZoho(
   to: string,
   subject: string,
   body: string
-): Promise<void> {
-  // Get account ID first
-  const accountsResponse = await fetch("https://mail.zoho.eu/api/accounts", {
-    headers: {
-      Authorization: `Zoho-oauthtoken ${accessToken}`,
-    },
-  });
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Get account ID first
+    const accountsResponse = await fetch("https://mail.zoho.eu/api/accounts", {
+      headers: {
+        Authorization: `Zoho-oauthtoken ${accessToken}`,
+      },
+    });
 
-  if (!accountsResponse.ok) {
-    throw new Error("Failed to get Zoho accounts");
+    if (!accountsResponse.ok) {
+      const errorText = await accountsResponse.text();
+      console.error("Failed to get Zoho accounts:", errorText);
+      return { success: false, error: `Błąd pobierania kont Zoho: ${accountsResponse.status}` };
+    }
+
+    const accountsData = await accountsResponse.json();
+    console.log("Available accounts:", accountsData.data?.map((a: any) => a.primaryEmailAddress));
+    
+    const account = accountsData.data?.find((acc: any) => 
+      acc.primaryEmailAddress === fromEmail
+    );
+
+    if (!account) {
+      console.error(`Account ${fromEmail} not found in Zoho accounts`);
+      return { success: false, error: `Konto ${fromEmail} nie znalezione w Zoho` };
+    }
+
+    // Send email with sender name "Aurine"
+    const sendResponse = await fetch(`https://mail.zoho.eu/api/accounts/${account.accountId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Zoho-oauthtoken ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        fromAddress: `"Aurine" <${fromEmail}>`,
+        toAddress: to,
+        subject: subject,
+        content: body,
+        mailFormat: "html",
+      }),
+    });
+
+    if (!sendResponse.ok) {
+      const errorText = await sendResponse.text();
+      console.error("Zoho send error:", errorText);
+      return { success: false, error: `Błąd wysyłki: ${sendResponse.status} - ${errorText.substring(0, 100)}` };
+    }
+
+    console.log(`Email sent successfully from Aurine <${fromEmail}> to ${to}`);
+    return { success: true };
+  } catch (e: any) {
+    console.error("Send email error:", e);
+    return { success: false, error: `Wyjątek: ${e.message}` };
   }
-
-  const accountsData = await accountsResponse.json();
-  console.log("Zoho accounts:", JSON.stringify(accountsData));
-  
-  const account = accountsData.data?.find((acc: any) => 
-    acc.primaryEmailAddress === fromEmail || acc.emailAddress?.includes(fromEmail)
-  );
-
-  if (!account) {
-    console.error("Available accounts:", accountsData.data?.map((a: any) => a.primaryEmailAddress));
-    throw new Error(`Account for ${fromEmail} not found`);
-  }
-
-  // Send email
-  const sendResponse = await fetch(`https://mail.zoho.eu/api/accounts/${account.accountId}/messages`, {
-    method: "POST",
-    headers: {
-      Authorization: `Zoho-oauthtoken ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      fromAddress: fromEmail,
-      toAddress: to,
-      subject: subject,
-      content: body,
-      mailFormat: "html",
-    }),
-  });
-
-  if (!sendResponse.ok) {
-    const errorText = await sendResponse.text();
-    console.error("Zoho send error:", errorText);
-    throw new Error("Failed to send email via Zoho");
-  }
-
-  console.log(`Email sent successfully from ${fromEmail} to ${to}`);
 }
 
 serve(async (req) => {
@@ -138,13 +149,20 @@ serve(async (req) => {
       throw new Error("Missing authorization header");
     }
 
-    const supabase = createClient(
+    // Use service role key to access zoho_credentials table
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    // User client for auth and lead updates
+    const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
     if (authError || !user) {
       throw new Error("Unauthorized");
     }
@@ -157,9 +175,14 @@ serve(async (req) => {
 
     const senderEmail = fromEmail === "kontakt" ? "kontakt@aurine.pl" : "biuro@aurine.pl";
 
-    // Get Zoho access token for the specific email account
-    const accessToken = await getZohoAccessToken(senderEmail);
-    await sendEmailViaZoho(accessToken, senderEmail, to, subject, body);
+    // Get Zoho access token using credentials from database
+    const accessToken = await getZohoAccessToken(supabaseAdmin, senderEmail);
+    
+    const sendResult = await sendEmailViaZoho(accessToken, senderEmail, to, subject, body);
+    
+    if (!sendResult.success) {
+      throw new Error(sendResult.error || "Błąd wysyłki email");
+    }
 
     // Update lead in database
     const updateData: Record<string, any> = {
@@ -186,7 +209,7 @@ serve(async (req) => {
       updateData.email_follow_up_2_date = new Date().toISOString().split('T')[0];
     }
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseUser
       .from("leads")
       .update(updateData)
       .eq("id", leadId);
@@ -196,11 +219,11 @@ serve(async (req) => {
     }
 
     // Create interaction record
-    await supabase.from("lead_interactions").insert({
+    await supabaseUser.from("lead_interactions").insert({
       lead_id: leadId,
       type: followUpType || "email",
       title: `Email wysłany: ${subject}`,
-      content: `Email wysłany z ${senderEmail} do ${to}`,
+      content: `Email wysłany z Aurine <${senderEmail}> do ${to}`,
       created_by: user.id,
     });
 
