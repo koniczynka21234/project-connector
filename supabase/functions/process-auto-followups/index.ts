@@ -53,6 +53,7 @@ async function getZohoAccessToken(supabase: any, emailFrom: string): Promise<str
 
   try {
     console.log(`Getting Zoho token for ${emailFrom}`);
+    console.log(`Using credentials - clientId: ${credentials.clientId?.substring(0, 10)}..., refreshToken: ${credentials.refreshToken?.substring(0, 10)}...`);
     
     const response = await fetch("https://accounts.zoho.eu/oauth/v2/token", {
       method: "POST",
@@ -77,6 +78,9 @@ async function getZohoAccessToken(supabase: any, emailFrom: string): Promise<str
     
     if (!data.access_token) {
       console.error(`No access_token in response for ${emailFrom}:`, data);
+      if (data.error) {
+        console.error(`Zoho error: ${data.error} - ${data.error_description || 'No description'}`);
+      }
       return null;
     }
     
@@ -337,13 +341,16 @@ serve(async (req) => {
         }
 
         const emailFrom = lead.email_from;
+        console.log(`Processing lead ${lead.id} (${lead.salon_name}) - emailFrom: ${emailFrom}`);
+        
         const accessToken = await getZohoAccessToken(supabase, emailFrom);
         
         if (!accessToken) {
-          console.error(`Failed to get access token for ${emailFrom}`);
+          const errorMsg = `Brak tokena dostępu Zoho dla ${emailFrom} - sprawdź dane w tabeli zoho_credentials`;
+          console.error(errorMsg);
           // Revert the claim since we failed
           await supabase.from("leads").update({ email_follow_up_1_sent: false }).eq("id", lead.id);
-          await logFollowUpSend(supabase, lead.id, lead.salon_name, lead.email, emailFrom, followUp1Template.name || "Follow-up 1", "followup_1", "failed", "Brak tokena dostępu");
+          await logFollowUpSend(supabase, lead.id, lead.salon_name, lead.email, emailFrom, followUp1Template.name || "Follow-up 1", "followup_1", "failed", errorMsg);
           results.failed++;
           continue;
         }
@@ -408,13 +415,16 @@ serve(async (req) => {
         }
 
         const emailFrom = lead.email_from;
+        console.log(`Processing lead ${lead.id} (${lead.salon_name}) - emailFrom: ${emailFrom}`);
+        
         const accessToken = await getZohoAccessToken(supabase, emailFrom);
         
         if (!accessToken) {
-          console.error(`Failed to get access token for ${emailFrom}`);
+          const errorMsg = `Brak tokena dostępu Zoho dla ${emailFrom} - sprawdź dane w tabeli zoho_credentials`;
+          console.error(errorMsg);
           // Revert the claim since we failed
           await supabase.from("leads").update({ email_follow_up_2_sent: false }).eq("id", lead.id);
-          await logFollowUpSend(supabase, lead.id, lead.salon_name, lead.email, emailFrom, followUp2Template.name || "Follow-up 2", "followup_2", "failed", "Brak tokena dostępu");
+          await logFollowUpSend(supabase, lead.id, lead.salon_name, lead.email, emailFrom, followUp2Template.name || "Follow-up 2", "followup_2", "failed", errorMsg);
           results.failed++;
           continue;
         }
