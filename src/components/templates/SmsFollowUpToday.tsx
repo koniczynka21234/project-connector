@@ -6,12 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import { 
   MessageSquare, Phone, Copy, Check, User, MapPin, Loader2, 
-  RefreshCw, CheckCircle2, Download, Upload, FileText 
+  RefreshCw, CheckCircle2, Download, Upload, FileText, Calendar 
 } from 'lucide-react';
-import { declineCityToLocative, getOwnerFirstName, declineSalonNameToGenitive, formatPhoneNumber } from '@/lib/polishDeclension';
+import { declineCityToLocative, declineFirstNameToVocative, declineSalonNameToGenitive, formatPhoneNumber } from '@/lib/polishDeclension';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
@@ -24,12 +24,6 @@ interface Lead {
   sms_follow_up_date: string | null;
 }
 
-interface SmsTemplate {
-  id: string;
-  template_name: string;
-  content: string;
-}
-
 interface GeneratedSms {
   leadId: string;
   salonName: string;
@@ -38,10 +32,17 @@ interface GeneratedSms {
   phone: string;
   message: string;
   selected: boolean;
+  smsDate: string | null;
+}
+
+interface SmsTemplate {
+  id: string;
+  template_name: string;
+  content: string;
 }
 
 export function SmsFollowUpToday() {
-  const { toast } = useToast();
+  
   const [leads, setLeads] = useState<Lead[]>([]);
   const [templates, setTemplates] = useState<SmsTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
@@ -71,9 +72,11 @@ export function SmsFollowUpToday() {
         supabase
           .from('leads')
           .select('id, salon_name, owner_name, city, phone, sms_follow_up_date')
-          .eq('sms_follow_up_date', today)
+          .lte('sms_follow_up_date', today) // Include overdue SMS too
           .eq('sms_follow_up_sent', false)
-          .order('salon_name'),
+          .eq('cold_email_sent', true) // SMS only after cold email sent
+          .not('status', 'in', '("converted","lost")') // Exclude converted/lost leads
+          .order('sms_follow_up_date', { ascending: true }),
         supabase
           .from('sms_templates')
           .select('*')
@@ -101,16 +104,18 @@ export function SmsFollowUpToday() {
     let content = template.content;
     
     // Replace placeholders with properly formatted values
-    const ownerFirstName = getOwnerFirstName(lead.owner_name || '');
+    // Use vocative case for names in greetings (e.g., "Pani Marcjanno" not "Pani Marcjanna")
+    const ownerFirstNameVocative = declineFirstNameToVocative(lead.owner_name || '');
     const declinedCity = lead.city ? declineCityToLocative(lead.city) : '';
+    // declineSalonNameToGenitive now strips "Salon" prefix to avoid "dla salonu Salonu X"
     const declinedSalon = declineSalonNameToGenitive(lead.salon_name || '');
     
     // Support both Polish and English placeholder names
-    content = content.replace(/{imie}/gi, ownerFirstName);
+    content = content.replace(/{imie}/gi, ownerFirstNameVocative);
     content = content.replace(/{salon}/gi, declinedSalon);
     content = content.replace(/{salonu}/gi, declinedSalon);
     content = content.replace(/{miasto}/gi, declinedCity);
-    content = content.replace(/{owner_name}/gi, ownerFirstName);
+    content = content.replace(/{owner_name}/gi, ownerFirstNameVocative);
     content = content.replace(/{salon_name}/gi, declinedSalon);
     content = content.replace(/{city}/gi, declinedCity);
 
@@ -125,7 +130,8 @@ export function SmsFollowUpToday() {
       city: lead.city,
       phone: lead.phone || '',
       message: getFilledTemplate(lead),
-      selected: true
+      selected: true,
+      smsDate: lead.sms_follow_up_date
     }));
     setGeneratedSmsList(generated);
   };
@@ -149,7 +155,7 @@ export function SmsFollowUpToday() {
   const markSelectedAsSent = async () => {
     const selectedIds = generatedSmsList.filter(sms => sms.selected).map(sms => sms.leadId);
     if (selectedIds.length === 0) {
-      toast({ title: "Błąd", description: "Nie wybrano żadnych SMS-ów", variant: "destructive" });
+      toast.error("Nie wybrano żadnych SMS-ów");
       return;
     }
 
@@ -162,16 +168,13 @@ export function SmsFollowUpToday() {
 
       if (error) throw error;
 
-      toast({ 
-        title: "Sukces", 
-        description: `Oznaczono ${selectedIds.length} SMS-ów jako wysłane` 
-      });
+      toast.success(`Oznaczono ${selectedIds.length} SMS-ów jako wysłane`);
       
       // Refresh data
       fetchData();
     } catch (error) {
       console.error('Error marking as sent:', error);
-      toast({ title: "Błąd", description: "Nie udało się oznaczyć jako wysłane", variant: "destructive" });
+      toast.error("Nie udało się oznaczyć jako wysłane");
     } finally {
       setMarkingAsSent(false);
     }
@@ -186,11 +189,11 @@ export function SmsFollowUpToday() {
 
       if (error) throw error;
 
-      toast({ title: "Sukces", description: "SMS oznaczony jako wysłany" });
+      toast.success("SMS oznaczony jako wysłany");
       fetchData();
     } catch (error) {
       console.error('Error marking as sent:', error);
-      toast({ title: "Błąd", description: "Nie udało się oznaczyć jako wysłany", variant: "destructive" });
+      toast.error("Nie udało się oznaczyć jako wysłany");
     }
   };
 
@@ -198,7 +201,6 @@ export function SmsFollowUpToday() {
     await navigator.clipboard.writeText(sms.message);
     setCopiedId(sms.leadId);
     setTimeout(() => setCopiedId(null), 2000);
-    toast({ title: "Skopiowano", description: "Wiadomość skopiowana do schowka" });
   };
 
   const copyPhone = async (sms: GeneratedSms) => {
@@ -207,14 +209,13 @@ export function SmsFollowUpToday() {
     await navigator.clipboard.writeText(formatted.replace(/\s/g, ''));
     setCopiedPhoneId(sms.leadId);
     setTimeout(() => setCopiedPhoneId(null), 2000);
-    toast({ title: "Skopiowano", description: "Numer telefonu skopiowany" });
   };
 
   const exportData = () => {
     const selectedSms = generatedSmsList.filter(sms => sms.selected && sms.phone);
     
     if (selectedSms.length === 0) {
-      toast({ title: "Błąd", description: "Brak wybranych SMS-ów do eksportu", variant: "destructive" });
+      toast.error("Brak wybranych SMS-ów do eksportu");
       return;
     }
 
@@ -241,17 +242,14 @@ export function SmsFollowUpToday() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    toast({ 
-      title: "Wyeksportowano", 
-      description: `Pobrano ${selectedSms.length} SMS-ów do pliku` 
-    });
+    toast.success(`Pobrano ${selectedSms.length} SMS-ów do pliku`);
   };
 
   const copyAllToClipboard = async () => {
     const selectedSms = generatedSmsList.filter(sms => sms.selected && sms.phone);
     
     if (selectedSms.length === 0) {
-      toast({ title: "Błąd", description: "Brak wybranych SMS-ów", variant: "destructive" });
+      toast.error("Brak wybranych SMS-ów");
       return;
     }
 
@@ -261,10 +259,7 @@ export function SmsFollowUpToday() {
     }).join('\n\n' + '─'.repeat(40) + '\n\n');
 
     await navigator.clipboard.writeText(content);
-    toast({ 
-      title: "Skopiowano", 
-      description: `Skopiowano ${selectedSms.length} SMS-ów do schowka` 
-    });
+    toast.success(`Skopiowano ${selectedSms.length} SMS-ów`);
   };
 
   const selectedCount = generatedSmsList.filter(sms => sms.selected).length;
@@ -410,6 +405,19 @@ export function SmsFollowUpToday() {
                       {sms.salonName}
                     </CardTitle>
                     <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                      {sms.smsDate && (
+                        <span className={`flex items-center gap-1 ${
+                          new Date(sms.smsDate + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0)) 
+                            ? 'text-red-400' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          <Calendar className="w-3 h-3" />
+                          {format(new Date(sms.smsDate + 'T00:00:00'), 'd MMM yyyy', { locale: pl })}
+                          {new Date(sms.smsDate + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0)) && (
+                            <span className="text-[10px] ml-1">(zaległe)</span>
+                          )}
+                        </span>
+                      )}
                       {sms.ownerName && (
                         <span className="flex items-center gap-1">
                           <User className="w-3 h-3" />

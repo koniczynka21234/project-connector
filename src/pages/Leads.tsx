@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { leadSchema } from '@/lib/validationSchemas';
+import { checkDuplicate, checkLeadExistsAsClient } from '@/lib/duplicateCheck';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -133,7 +134,7 @@ const industryOptions = [
   'Inne',
 ];
 
-// Sequence: Cold Mail (Day 0) → SMS (Day 2) → Email 1 (Day 6) → Email 2 (Day 10)
+// Sequence: Cold Mail (Day 0) → SMS (Day 1) → Email 1 (Day 4) → Email 2 (Day 7)
 // Helper to check if a date is due (today or past) - timezone-safe
 const isDateDue = (dueDate: Date): boolean => {
   const today = new Date();
@@ -150,21 +151,21 @@ const getNextFollowUpInfo = (lead: Lead): { type: string; dueDate: Date | null; 
   // Parse date as local to avoid timezone issues
   const coldEmailDate = new Date(lead.cold_email_date + 'T00:00:00');
   
-  // Check SMS (Day 2)
+  // Check SMS (Day 1)
   if (!lead.sms_follow_up_sent) {
-    const smsDue = addDays(coldEmailDate, 2);
+    const smsDue = addDays(coldEmailDate, 1);
     return { type: 'sms', dueDate: smsDue, isDue: isDateDue(smsDue) };
   }
   
-  // Check Email Follow-up 1 (Day 6 = 4 days after SMS)
+  // Check Email Follow-up 1 (Day 4 = 3 days after SMS)
   if (!lead.email_follow_up_1_sent) {
-    const email1Due = addDays(coldEmailDate, 6);
+    const email1Due = addDays(coldEmailDate, 4);
     return { type: 'email1', dueDate: email1Due, isDue: isDateDue(email1Due) };
   }
   
-  // Check Email Follow-up 2 (Day 10 = 4 days after Email 1)
+  // Check Email Follow-up 2 (Day 7 = 3 days after Email 1)
   if (!lead.email_follow_up_2_sent) {
-    const email2Due = addDays(coldEmailDate, 10);
+    const email2Due = addDays(coldEmailDate, 7);
     return { type: 'email2', dueDate: email2Due, isDue: isDateDue(email2Due) };
   }
   
@@ -176,9 +177,11 @@ export default function Leads() {
   const { settings } = useAppSettings();
   const { createOnboardingTasks } = useOnboardingTasks();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const cityFromUrl = searchParams.get('city');
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(cityFromUrl || '');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [industryFilter, setIndustryFilter] = useState<string>('all');
@@ -287,6 +290,28 @@ export default function Leads() {
     };
 
     console.log('Submitting lead:', { ...dataToSave, created_by: user.id });
+
+    // Duplicate check
+    if (!editingLead) {
+      const dupLead = await checkDuplicate({
+        table: 'leads',
+        salon_name: dataToSave.salon_name,
+        phone: dataToSave.phone,
+        email: dataToSave.email,
+      });
+      if (dupLead.isDuplicate) {
+        toast.error(dupLead.matchReason || 'Ten lead już istnieje');
+        return;
+      }
+      const dupClient = await checkLeadExistsAsClient(
+        dataToSave.salon_name,
+        dataToSave.phone,
+        dataToSave.email,
+      );
+      if (dupClient.isDuplicate) {
+        toast.warning(dupClient.matchReason || 'Ten salon jest już klientem');
+      }
+    }
 
     if (editingLead) {
       const { error } = await supabase
@@ -459,7 +484,7 @@ export default function Leads() {
   };
 
   // Actually perform the conversion with assigned guardian
-  const performConversion = async (lead: Lead, assignedTo: string, contractDurationMonths?: number, startDate?: string, endDate?: string, contractAmount?: number, monthlyBudget?: number) => {
+  const performConversion = async (lead: Lead, assignedTo: string, contractDurationMonths?: number, startDate?: string, endDate?: string, contractAmount?: number, monthlyBudget?: number, nip?: string) => {
     // VALIDATION 1: Check if lead is already converted (fresh check from DB)
     const { data: freshLead, error: leadCheckError } = await supabase
       .from('leads')
@@ -496,9 +521,7 @@ export default function Leads() {
       ? new Date(new Date().setMonth(new Date().getMonth() + contractDurationMonths)).toISOString().split('T')[0]
       : null);
 
-    const { data: newClient, error: insertError } = await supabase
-      .from('clients')
-      .insert({
+    const insertData: any = {
         salon_name: lead.salon_name,
         owner_name: lead.owner_name,
         city: lead.city,
@@ -510,13 +533,18 @@ export default function Leads() {
         lead_id: lead.id,
         created_by: user?.id,
         assigned_to: assignedTo,
-        status: 'active',
+        status: 'pending',
         contract_start_date: contractStartDate,
         contract_end_date: contractEndDate,
         contract_duration_months: contractDurationMonths || null,
         monthly_budget: monthlyBudget || null,
-        contract_amount: contractAmount || null
-      })
+        contract_amount: contractAmount || null,
+      };
+    if (nip) insertData.nip = nip;
+
+    const { data: newClient, error: insertError } = await supabase
+      .from('clients')
+      .insert(insertData as any)
       .select('id')
       .single();
 
@@ -558,14 +586,14 @@ export default function Leads() {
         user.id
       );
       
-      // Create notification about invoice requirement with contract amount
+      // Create notification about invoice requirement for guardian only
       const invoiceContent = contractAmount 
         ? `Wystawić fakturę dla nowego klienta "${lead.salon_name}" na kwotę ${contractAmount} PLN`
         : `Wystawić fakturę dla nowego klienta "${lead.salon_name}"`;
       
       await createNotification({
         userId: assignedTo,
-        title: 'Wymagana faktura',
+        title: 'Wymagana faktura — nowy klient',
         content: invoiceContent,
         type: 'invoice_required',
         referenceType: 'client',
@@ -643,17 +671,17 @@ export default function Leads() {
 
   // Helper: get SMS due date from cold email date
   const getSmsDueDate = (coldEmailDate: string): Date => {
-    return addDays(new Date(coldEmailDate + 'T00:00:00'), 2);
+    return addDays(new Date(coldEmailDate + 'T00:00:00'), 1);
   };
 
   // Helper: get Email FU1 due date from cold email date  
   const getEmailFu1DueDate = (coldEmailDate: string): Date => {
-    return addDays(new Date(coldEmailDate + 'T00:00:00'), 6);
+    return addDays(new Date(coldEmailDate + 'T00:00:00'), 4);
   };
 
   // Helper: get Email FU2 due date from cold email date
   const getEmailFu2DueDate = (coldEmailDate: string): Date => {
-    return addDays(new Date(coldEmailDate + 'T00:00:00'), 10);
+    return addDays(new Date(coldEmailDate + 'T00:00:00'), 7);
   };
 
   // Filter leads based on tab and filters
@@ -772,6 +800,7 @@ export default function Leads() {
     responded: leads.filter(l => !!l.response || !!l.response_date).length,
   };
 
+
   const getSequenceStatus = (lead: Lead) => {
     const steps = [
       { done: lead.cold_email_sent, label: 'CM', date: lead.cold_email_date },
@@ -842,9 +871,18 @@ export default function Leads() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-foreground">Leady</h1>
-              <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">Sekwencja: Cold Mail → SMS (2 dni) → Email #1 (4 dni) → Email #2 (4 dni)</p>
+              <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">Sekwencja: Cold Mail → SMS (1 dzień) → Email #1 (dzień 4) → Email #2 (dzień 7)</p>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button 
+                size="sm"
+                onClick={() => navigate('/leads/cities')}
+                className="gap-2 bg-primary/10 text-primary border border-primary/40 hover:bg-primary/20 hover:border-primary/60 hover:shadow-[0_0_12px_hsl(330_100%_60%/0.3)] transition-all duration-200"
+              >
+                <MapPin className="w-4 h-4" />
+                <span className="hidden sm:inline">Analiza miast</span>
+                <ArrowUpRight className="w-3.5 h-3.5 hidden sm:inline" />
+              </Button>
               <div className="flex items-center border border-zinc-700 rounded-lg overflow-hidden z-10">
                 <Button
                   size="sm"
@@ -1070,9 +1108,9 @@ export default function Leads() {
                           if (newDate) {
                             // Auto-calculate other dates based on sequence
                             const coldDate = new Date(newDate + 'T00:00:00');
-                            const smsDate = format(addDays(coldDate, 2), 'yyyy-MM-dd');
-                            const email1Date = format(addDays(coldDate, 6), 'yyyy-MM-dd');
-                            const email2Date = format(addDays(coldDate, 10), 'yyyy-MM-dd');
+                            const smsDate = format(addDays(coldDate, 1), 'yyyy-MM-dd');
+                            const email1Date = format(addDays(coldDate, 4), 'yyyy-MM-dd');
+                            const email2Date = format(addDays(coldDate, 7), 'yyyy-MM-dd');
                             setFormData({ 
                               ...formData, 
                               cold_email_date: newDate,
@@ -1622,9 +1660,9 @@ export default function Leads() {
                             if (lead.cold_email_date) {
                               const baseDate = new Date(lead.cold_email_date + 'T00:00:00');
                               if (idx === 0) scheduledDate = baseDate;
-                              else if (idx === 1) scheduledDate = addDays(baseDate, 2);
-                              else if (idx === 2) scheduledDate = addDays(baseDate, 6);
-                              else if (idx === 3) scheduledDate = addDays(baseDate, 10);
+                              else if (idx === 1) scheduledDate = addDays(baseDate, 1);
+                              else if (idx === 2) scheduledDate = addDays(baseDate, 4);
+                              else if (idx === 3) scheduledDate = addDays(baseDate, 7);
                             }
                             
                             const isDueToday = scheduledDate && isDateToday(scheduledDate.toISOString().split('T')[0]);

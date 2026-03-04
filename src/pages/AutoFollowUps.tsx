@@ -126,10 +126,10 @@ export default function AutoFollowUps() {
     if (!lead.cold_email_date) return null;
     
     if (!lead.email_follow_up_1_sent) {
-      return lead.email_follow_up_1_date || addDays(new Date(lead.cold_email_date), 3).toISOString().split('T')[0];
+      return lead.email_follow_up_1_date || addDays(new Date(lead.cold_email_date), 4).toISOString().split('T')[0];
     }
     if (!lead.email_follow_up_2_sent && lead.email_follow_up_1_date) {
-      return lead.email_follow_up_2_date || addDays(new Date(lead.email_follow_up_1_date), 4).toISOString().split('T')[0];
+      return lead.email_follow_up_2_date || addDays(new Date(lead.email_follow_up_1_date), 3).toISOString().split('T')[0];
     }
     return null;
   };
@@ -279,7 +279,7 @@ export default function AutoFollowUps() {
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">Automatyczne wysyłanie</p>
                 <p className="text-xs text-muted-foreground">
-                  System automatycznie sprawdza codziennie o 9:00 czy są zaległe follow-upy i je wysyła.
+                  System automatycznie sprawdza codziennie o 10:00 (czas polski) czy są zaległe follow-upy i je wysyła.
                   Przycisk "Wyślij zaległe" pozwala ręcznie uruchomić wysyłkę.
                 </p>
               </div>

@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -10,6 +9,8 @@ import { AppErrorBoundary } from "@/components/layout/AppErrorBoundary";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ScrollToTop } from "@/components/layout/ScrollToTop";
+import { OfflineBanner } from "@/components/layout/OfflineBanner";
+import { PremiumToastContainer } from "@/components/ui/premium-toast";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import DocumentHistory from "./pages/DocumentHistory";
@@ -19,11 +20,13 @@ import ContractGenerator from "./pages/ContractGenerator";
 import PresentationGenerator from "./pages/PresentationGenerator";
 import Leads from "./pages/Leads";
 import LeadProfile from "./pages/LeadProfile";
+import LeadsCityAnalysis from "./pages/LeadsCityAnalysis";
 import Clients from "./pages/Clients";
 import ClientProfile from "./pages/ClientProfile";
 import Campaigns from "./pages/Campaigns";
 import CampaignDetails from "./pages/CampaignDetails";
 import Templates from "./pages/Templates";
+import FollowUpSms from "./pages/FollowUpSms";
 import Tasks from "./pages/Tasks";
 import AdminPanel from "./pages/AdminPanel";
 import SalesFunnelPage from "./pages/SalesFunnelPage";
@@ -43,7 +46,11 @@ import WelcomePackGenerator from "./pages/WelcomePackGenerator";
 import SocialMediaLibrary from "./pages/SocialMediaLibrary";
 import AurineAcademy from "./pages/AurineAcademy";
 import Statistics from "./pages/Statistics";
+import AuditGenerator from "./pages/AuditGenerator";
 import NotFound from "./pages/NotFound";
+import ConversationScripts from "./pages/ConversationScripts";
+import ConversationScriptsHistory from "./pages/ConversationScriptsHistory";
+import ConversationScriptDetail from "./pages/ConversationScriptDetail";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +78,7 @@ function AppContent() {
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/history" element={<DocumentHistory />} />
             <Route path="/leads" element={<Leads />} />
+            <Route path="/leads/cities" element={<LeadsCityAnalysis />} />
             <Route path="/leads/:id" element={<LeadProfile />} />
             <Route path="/clients" element={<Clients />} />
             <Route path="/clients/:id" element={<ClientProfile />} />
@@ -78,6 +86,7 @@ function AppContent() {
             <Route path="/campaigns/:id" element={<CampaignDetails />} />
             <Route path="/funnel" element={<SalesFunnelPage />} />
             <Route path="/templates" element={<Templates />} />
+            <Route path="/followup-sms" element={<FollowUpSms />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/profile/:id" element={<UserProfile />} />
             <Route path="/notifications" element={<Notifications />} />
@@ -95,10 +104,14 @@ function AppContent() {
             <Route path="/graphics-creator" element={<GraphicsCreator />} />
             <Route path="/auto-followups" element={<AutoFollowUps />} />
             <Route path="/client-service" element={<ClientService />} />
+            <Route path="/conversation-scripts" element={<ConversationScripts />} />
+            <Route path="/conversation-scripts/history" element={<ConversationScriptsHistory />} />
+            <Route path="/conversation-scripts/:id" element={<ConversationScriptDetail />} />
             <Route path="/welcome-pack-generator" element={<WelcomePackGenerator />} />
             <Route path="/social-media" element={<SocialMediaLibrary />} />
             <Route path="/aurine-academy" element={<AurineAcademy />} />
             <Route path="/statistics" element={<Statistics />} />
+            <Route path="/audit-generator" element={<AuditGenerator />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
@@ -111,8 +124,9 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        <Toaster />
+        <OfflineBanner />
         <Sonner />
+        <PremiumToastContainer />
         <AppContent />
       </TooltipProvider>
     </AuthProvider>
