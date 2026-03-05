@@ -242,35 +242,98 @@ const CategoryHeader = ({ catId, title, subtitle }: { catId: string; title: stri
 
 // ============ ACADEMY HINTS (subtle promotion) ============
 
-const ACADEMY_HINTS: Record<string, string> = {
-  fb_posts: "Gotowe opisy postów z AI do skopiowania — w pakiecie.",
-  fb_photos: "Generator grafik z Twoich zdjęć — wklejasz i masz gotowe.",
-  fb_profile: "Krok po kroku jak to uzupełnić — masz w aplikacji.",
-  fb_engagement: "Gotowe szablony odpowiedzi na wiadomości — w pakiecie.",
-  ig_profile: "Generator bio z AI — podajesz dane, dostajesz gotowe bio.",
-  ig_feed: "Szablony grafik w kolorach Twojego salonu — w aplikacji.",
-  ig_stories: "Gotowe scenariusze stories na każdy dzień tygodnia.",
-  content_copy: "AI planuje Ci treści na 30 dni — tematy, opisy, hashtagi.",
-  content_photos: "Generator before/after — wklejasz 2 zdjęcia, reszta się robi.",
-  content_hashtags: "AI dobiera hashtagi automatycznie do każdego posta.",
-  content_frequency: "Kalendarz postów z przypomnieniami — widzisz co kiedy publikować.",
-  sr_reels: "Gotowe skrypty Reels — co powiedzieć, jak nagrać, jaka muzyka.",
-  sr_interaction: "Szablony interaktywnych stories — ankiety, quizy, slidery.",
-  brand_visual: "Szablony w kolorach salonu — spójność bez grafika.",
-  brand_tone: "Kurs spójnej komunikacji marki — posty, stories, wiadomości.",
-  ads_campaigns: "Wyniki kampanii na żywo w aplikacji — wiesz co się dzieje.",
-  ads_strategy: "Strategia i kontakt z opiekunem — bez czekania na maile.",
-  gmb_profile: "Kurs uzupełniania wizytówki Google + gotowe opisy usług.",
-  gmb_reviews: "Gotowe wiadomości z prośbą o opinię — SMS i WhatsApp.",
-  web_ux: "Checklista strony www — co musi być, żeby konwertowała.",
-  web_seo: "Poradnik SEO dla beauty — jak być widoczną w Google.",
+const ACADEMY_HINTS: Record<string, { text: string; feature: string }> = {
+  fb_posts: {
+    text: "W aplikacji Aurine Academy klientka ma dostęp do generatora strategii AI, który tworzy gotowe opisy postów — z hookiem, storytellingiem i CTA. Wystarczy skopiować i opublikować. Do tego kalendarz postów planuje treści na cały miesiąc.",
+    feature: "Generator opisów AI + Kalendarz",
+  },
+  fb_photos: {
+    text: "Generator grafik w Aurine Academy pozwala klientce wkleić swoje zdjęcia z zabiegów, a system automatycznie tworzy profesjonalne grafiki w 10+ szablonach — before/after, karuzele, posty z opisem. Bez Canvy, bez grafika.",
+    feature: "Generator grafik z własnych zdjęć",
+  },
+  fb_profile: {
+    text: "Klientka otrzymuje w aplikacji kurs krok po kroku jak uzupełnić profil Facebook — od zdjęcia w tle, przez opis, po przycisk CTA. Plus gotowe teksty do skopiowania i uzupełnienia swoimi danymi.",
+    feature: "Kurs uzupełniania profilu + gotowe teksty",
+  },
+  fb_engagement: {
+    text: "W Aurine Academy są gotowe szablony odpowiedzi na komentarze i wiadomości — klientka wybiera sytuację (pytanie o cenę, reklamacja, prośba o termin) i ma gotową odpowiedź do personalizacji.",
+    feature: "Szablony odpowiedzi na wiadomości",
+  },
+  ig_profile: {
+    text: "Aplikacja zawiera generator bio na Instagram z AI — klientka podaje specjalizację i miasto, a system tworzy profesjonalne bio z emoji i CTA. Plus kurs optymalizacji profilu z przykładami najlepszych salonów.",
+    feature: "Generator bio AI + Kurs profilu IG",
+  },
+  ig_feed: {
+    text: "Generator grafik tworzy spójne wizualnie posty na feed — klientka wybiera szablon w kolorach swojego salonu, wkleja zdjęcia efektów pracy i dostaje gotową grafikę do publikacji.",
+    feature: "Generator spójnych grafik na feed",
+  },
+  ig_stories: {
+    text: "W aplikacji są gotowe scenariusze stories na każdy dzień tygodnia — poniedziałek: kulisy, wtorek: efekt pracy, środa: porada. Plus interaktywne szablony z ankietami i quizami do zaangażowania obserwujących.",
+    feature: "Scenariusze stories + szablony interakcji",
+  },
+  content_copy: {
+    text: "Generator strategii AI analizuje branżę klientki i tworzy spersonalizowany plan treści na 30 dni — z konkretnymi tematami, opisami i hashtagami. Klientka dodaje je jednym kliknięciem do kalendarza postów.",
+    feature: "Plan treści AI na 30 dni + Kalendarz",
+  },
+  content_photos: {
+    text: "Generator before/after w aplikacji — klientka wkleja 2 zdjęcia (przed i po zabiegu), wybiera szablon i dostaje profesjonalną grafikę porównawczą gotową do publikacji. 10+ szablonów do wyboru.",
+    feature: "Generator grafik before/after",
+  },
+  content_hashtags: {
+    text: "AI w Aurine Academy dobiera hashtagi do każdego posta automatycznie — analizuje treść, branżę i lokalizację. Klientka dostaje zestaw 20-30 hashtagów podzielonych na kategorie: lokalne, branżowe, popularne.",
+    feature: "Inteligentne hashtagi AI",
+  },
+  content_frequency: {
+    text: "Kalendarz postów w aplikacji pokazuje klientce dokładnie co, kiedy i jak publikować — z przypomnieniami push. Plan na cały miesiąc z różnorodnymi formatami: edukacja, efekty, kulisy, angażowanie.",
+    feature: "Kalendarz postów z przypomnieniami",
+  },
+  sr_reels: {
+    text: "Aurine Academy zawiera bibliotekę gotowych scenariuszy Reels — klientka wybiera typ (metamorfoza, porada, dzień z życia salonu), dostaje dokładny skrypt: co powiedzieć, jak sfilmować, jaka muzyka.",
+    feature: "Gotowe scenariusze Reels + instrukcje",
+  },
+  sr_interaction: {
+    text: "Gotowe szablony interaktywnych stories do skopiowania — ankiety, quizy, pytania, slidery. Każdy szablon ma instrukcję jak go użyć i przykład z branży beauty.",
+    feature: "Szablony interaktywnych stories",
+  },
+  brand_visual: {
+    text: "Generator grafik w Aurine Academy ma szablony brandingowe dopasowane do kolorów salonu — klientka ustawia swoje kolory raz i wszystkie generowane materiały są wizualnie spójne.",
+    feature: "Szablony grafik w kolorach salonu",
+  },
+  brand_tone: {
+    text: "Kurs komunikacji marki w aplikacji uczy klientkę jak budować spójny ton komunikacji — od postów, przez stories, po odpowiedzi na wiadomości. Z przykładami i ćwiczeniami.",
+    feature: "Kurs komunikacji + ton marki",
+  },
+  ads_campaigns: {
+    text: "Klientka widzi w aplikacji status swoich kampanii reklamowych na żywo — czy kampania jest aktywna, ile wydano budżetu, jakie są wyniki. Plus bezpośredni kontakt z opiekunem kampanii.",
+    feature: "Podgląd kampanii na żywo + kontakt",
+  },
+  ads_strategy: {
+    text: "W aplikacji klientka ma podgląd całej strategii reklamowej — cele, grupy docelowe, budżety. Może zgłaszać uwagi i zadawać pytania bezpośrednio do opiekuna bez czekania na maile.",
+    feature: "Strategia + bezpośredni kontakt",
+  },
+  gmb_profile: {
+    text: "W Aurine Academy są materiały krok po kroku jak uzupełnić wizytówkę Google — zdjęcia, opis usług, kategorie, godziny otwarcia. Plus gotowe opisy usług do skopiowania i personalizacji.",
+    feature: "Kurs Google + gotowe opisy usług",
+  },
+  gmb_reviews: {
+    text: "Gotowe szablony wiadomości SMS i WhatsApp z prośbą o opinię Google — klientka salonu dostaje link bezpośrednio do formularza opinii. Plus szablony odpowiedzi na pozytywne i negatywne opinie.",
+    feature: "Szablony próśb o opinie + odpowiedzi",
+  },
+  web_ux: {
+    text: "Kurs w aplikacji pokazuje klientce co powinna mieć na stronie www salonu — rezerwacja online, cennik, galeria efektów, opinie. Z checklistą i przykładami dobrze zrobionych stron.",
+    feature: "Kurs strony www + checklista",
+  },
+  web_seo: {
+    text: "Materiały SEO w Aurine Academy uczą klientkę jak być widoczną w Google — od wizytówki, przez wpisy blogowe, po słowa kluczowe. Gotowe wskazówki dopasowane do branży beauty.",
+    feature: "Poradnik SEO dla salonów beauty",
+  },
 };
 
-const getAcademyHint = (subSectionId: string): string | undefined => ACADEMY_HINTS[subSectionId];
+const getAcademyHint = (subSectionId: string) => ACADEMY_HINTS[subSectionId];
 
 // ============ FINDING CARD (redesigned) ============
 
-const FindingCard = ({ finding, catId, showAcademyHint }: { finding: EnrichedFinding; catId?: string; showAcademyHint?: string }) => {
+const FindingCard = ({ finding, catId, showAcademyHint }: { finding: EnrichedFinding; catId?: string; showAcademyHint?: { text: string; feature: string } }) => {
   const isPositive = finding.type === "positive";
   const a = getAccent(catId);
 
@@ -332,10 +395,19 @@ const FindingCard = ({ finding, catId, showAcademyHint }: { finding: EnrichedFin
 
       {/* Academy hint - expanded with full description */}
       {showAcademyHint && (
-        <div className="px-5 pb-3 -mt-1">
-          <p className="text-zinc-500 text-[11px] italic">
-            💡 {showAcademyHint}
-          </p>
+        <div className="px-5 py-3.5 bg-gradient-to-r from-fuchsia-500/[0.05] via-cyan-500/[0.04] to-teal-500/[0.05] border-t border-teal-500/15">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-fuchsia-500/20 to-cyan-500/15 border border-fuchsia-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <BookOpen className="w-4 h-4 text-fuchsia-300" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] uppercase tracking-[0.12em] font-bold text-fuchsia-300/90">Aurine Academy</span>
+                <span className="text-[8px] text-cyan-400/60 font-medium px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/15">{showAcademyHint.feature}</span>
+              </div>
+              <p className="text-zinc-400 text-[12px] leading-relaxed">{showAcademyHint.text}</p>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -705,19 +777,15 @@ const CategoryOverviewSlide = ({ data, slideNumber, totalSlides, slide }: {
           <p className="text-zinc-300 text-base leading-relaxed">{cat.description}</p>
 
           {total > 0 ? (
-            <div className={`grid ${positives > 0 && issues > 0 ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
-              {issues > 0 && (
-                <div className="p-5 rounded-xl bg-red-500/5 border border-red-500/20 text-center">
-                  <p className="text-4xl font-bold text-red-400">{issues}</p>
-                  <p className="text-zinc-400 text-sm mt-1">Do poprawy</p>
-                </div>
-              )}
-              {positives > 0 && (
-                <div className="p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
-                  <p className="text-4xl font-bold text-emerald-400">{positives}</p>
-                  <p className="text-zinc-400 text-sm mt-1">OK</p>
-                </div>
-              )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
+                <p className="text-4xl font-bold text-emerald-400">{positives}</p>
+                <p className="text-zinc-400 text-sm mt-1">Mocne strony</p>
+              </div>
+              <div className="p-5 rounded-xl bg-red-500/5 border border-red-500/20 text-center">
+                <p className="text-4xl font-bold text-red-400">{issues}</p>
+                <p className="text-zinc-400 text-sm mt-1">Do poprawy</p>
+              </div>
             </div>
           ) : (
             <div className="p-5 rounded-xl bg-zinc-800/40 border border-zinc-700/40">
@@ -967,9 +1035,10 @@ const RecommendationsSlide = ({ data, slideNumber, totalSlides, checkedFindings 
         </div>
       </div>
 
-      <div className="mt-5 p-3 rounded-xl bg-zinc-800/30 border border-zinc-700/20 flex items-center gap-3">
-        <p className="text-zinc-500 text-xs">
-          💡 W ramach współpracy dostajesz dostęp do <span className="text-zinc-400">Aurine Academy</span> — aplikacji z gotowymi narzędziami do samodzielnego marketingu.
+      <div className="mt-5 p-4 rounded-xl bg-gradient-to-r from-teal-500/10 to-cyan-500/5 border border-teal-500/20 flex items-center gap-4">
+        <Sparkles className="w-6 h-6 text-teal-400 flex-shrink-0" />
+        <p className="text-zinc-300 text-sm">
+          <span className="text-teal-300 font-semibold">Aurine Academy</span> — gotowe szablony, kursy wideo i materiały marketingowe stworzone specjalnie dla salonów beauty.
         </p>
       </div>
     </SlideShell>
