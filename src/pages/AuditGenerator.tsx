@@ -97,6 +97,9 @@ const AuditGenerator = () => {
           if (d.includeAcademy !== undefined) {
             setIncludeAcademy(d.includeAcademy === 'true');
           }
+          if (d.textOverrides) {
+            try { setTextOverrides(JSON.parse(d.textOverrides)); } catch {}
+          }
         }
       } catch (e) {
         console.error("Error loading document:", e);
