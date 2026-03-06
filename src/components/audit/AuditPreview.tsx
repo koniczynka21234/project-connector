@@ -429,10 +429,10 @@ const FindingCard = ({ finding, catId, showAcademyHint, textOverrides, onTextCha
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5 mb-1.5">
-            <EditableText value={label} onChange={handleChange?.('label')} className="text-emerald-200 text-[15px] font-bold" />
+            <EditableText value={label} onChange={handleChange?.('label')} className="text-emerald-200 text-[15px] font-bold" isEditing={isEditing} />
             <span className="text-[8px] uppercase tracking-[0.15em] text-emerald-400 font-bold px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/20">DOBRZE</span>
           </div>
-          <EditableText value={description} onChange={handleChange?.('description')} className="text-zinc-400 text-[13px] leading-relaxed" />
+          <EditableText value={description} onChange={handleChange?.('description')} className="text-zinc-400 text-[13px] leading-relaxed" isEditing={isEditing} />
         </div>
       </div>
     );
