@@ -185,6 +185,7 @@ const AuditGenerator = () => {
     checkedFindings: JSON.stringify(checkedFindings),
     enabledCategories: JSON.stringify(enabledCategories),
     includeAcademy: String(includeAcademy),
+    textOverrides: JSON.stringify(textOverrides),
   });
 
   const handleSave = async () => {
