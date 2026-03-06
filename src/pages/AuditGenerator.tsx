@@ -668,6 +668,7 @@ const AuditGenerator = () => {
                 checkedFindings={checkedFindings}
                 includeAcademy={includeAcademy}
                 textOverrides={textOverrides}
+                isEditing={isEditing}
                 onTextChange={(findingId, field, value) => {
                   setTextOverrides(prev => ({
                     ...prev,
