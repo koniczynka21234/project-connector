@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   FileSearch, Instagram, Film, Palette,
   TrendingUp, Check, CheckCircle2,
