@@ -470,7 +470,7 @@ const FindingCard = ({ finding, catId, showAcademyHint, textOverrides, onTextCha
               </div>
               <div className="flex-1">
                 <span className={`text-[10px] uppercase tracking-[0.15em] font-bold ${a?.text || 'text-teal-400'}`}>Nasza rekomendacja</span>
-                <EditableText value={recommendation} onChange={handleChange?.('recommendation')} className="text-zinc-300 text-[13px] leading-[1.7] mt-1.5" />
+                <EditableText value={recommendation} onChange={handleChange?.('recommendation')} className="text-zinc-300 text-[13px] leading-[1.7] mt-1.5" isEditing={isEditing} />
               </div>
             </div>
           </div>
