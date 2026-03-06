@@ -912,8 +912,8 @@ const CategoryOverviewSlide = ({ data, slideNumber, totalSlides, slide }: {
 
 // ============ FINDINGS SLIDE (redesigned) ============
 
-const FindingsSlide = ({ slideNumber, totalSlides, slide, includeAcademy = true, textOverrides, onTextChange }: {
-  slideNumber: number; totalSlides: number; slide: AuditSlideData; includeAcademy?: boolean; textOverrides?: TextOverrides; onTextChange?: (findingId: string, field: 'label' | 'description' | 'recommendation', value: string) => void;
+const FindingsSlide = ({ slideNumber, totalSlides, slide, includeAcademy = true, textOverrides, onTextChange, isEditing = false }: {
+  slideNumber: number; totalSlides: number; slide: AuditSlideData; includeAcademy?: boolean; textOverrides?: TextOverrides; onTextChange?: (findingId: string, field: 'label' | 'description' | 'recommendation', value: string) => void; isEditing?: boolean;
 }) => {
   const catId = slide.categoryId!;
   const a = getAccent(catId);
