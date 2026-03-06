@@ -1180,7 +1180,7 @@ const SummarySlide = ({ data, slideNumber, totalSlides, includeAcademy = true }:
 
 // ============ MAIN COMPONENT ============
 
-export const AuditPreview = ({ data, currentSlide, enabledCategories, checkedFindings, includeAcademy = true }: AuditPreviewProps) => {
+export const AuditPreview = ({ data, currentSlide, enabledCategories, checkedFindings, includeAcademy = true, textOverrides, onTextChange }: AuditPreviewProps) => {
   const slides = generateAuditSlides(enabledCategories, checkedFindings);
   const totalSlides = slides.length;
   const current = slides[currentSlide - 1];
@@ -1197,7 +1197,7 @@ export const AuditPreview = ({ data, currentSlide, enabledCategories, checkedFin
     case 'category-overview':
       return <CategoryOverviewSlide data={data} slideNumber={currentSlide} totalSlides={totalSlides} slide={current} />;
     case 'findings':
-      return <FindingsSlide slideNumber={currentSlide} totalSlides={totalSlides} slide={current} includeAcademy={includeAcademy} />;
+      return <FindingsSlide slideNumber={currentSlide} totalSlides={totalSlides} slide={current} includeAcademy={includeAcademy} textOverrides={textOverrides} onTextChange={onTextChange} />;
     case 'competition':
       return <CompetitionSlide data={data} slideNumber={currentSlide} totalSlides={totalSlides} />;
     case 'recommendations':
