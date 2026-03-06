@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   FileSearch, Instagram, Film, Palette,
   TrendingUp, Check, CheckCircle2,
@@ -23,12 +24,16 @@ interface AuditFormData {
   websiteUrl: string;
 }
 
+export type TextOverrides = Record<string, { label?: string; description?: string; recommendation?: string }>;
+
 interface AuditPreviewProps {
   data: AuditFormData;
   currentSlide: number;
   enabledCategories: Record<string, boolean>;
   checkedFindings: Record<string, boolean>;
   includeAcademy?: boolean;
+  textOverrides?: TextOverrides;
+  onTextChange?: (findingId: string, field: 'label' | 'description' | 'recommendation', value: string) => void;
 }
 
 // ============ CATEGORY COLOR SYSTEM ============
@@ -331,11 +336,86 @@ const ACADEMY_HINTS: Record<string, { text: string; feature: string }> = {
 
 const getAcademyHint = (subSectionId: string) => ACADEMY_HINTS[subSectionId];
 
+// ============ INLINE EDITABLE TEXT ============
+
+const EditableText = ({ value, onChange, className, tag = "p" }: {
+  value: string;
+  onChange?: (val: string) => void;
+  className?: string;
+  tag?: "p" | "span";
+}) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => { setDraft(value); }, [value]);
+
+  useEffect(() => {
+    if (editing && ref.current) {
+      ref.current.focus();
+      ref.current.style.height = 'auto';
+      ref.current.style.height = ref.current.scrollHeight + 'px';
+    }
+  }, [editing]);
+
+  const commit = useCallback(() => {
+    setEditing(false);
+    if (draft.trim() !== value && onChange) onChange(draft.trim());
+  }, [draft, value, onChange]);
+
+  if (!onChange) {
+    const Tag = tag;
+    return <Tag className={className}>{value}</Tag>;
+  }
+
+  if (editing) {
+    return (
+      <textarea
+        ref={ref}
+        value={draft}
+        onChange={e => {
+          setDraft(e.target.value);
+          e.target.style.height = 'auto';
+          e.target.style.height = e.target.scrollHeight + 'px';
+        }}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Escape') { setDraft(value); setEditing(false); } }}
+        className={`${className} bg-white/5 rounded px-1.5 py-0.5 outline-none ring-1 ring-white/20 resize-none w-full`}
+        style={{ minHeight: '1.5em' }}
+      />
+    );
+  }
+
+  const Tag = tag;
+  return (
+    <Tag
+      className={`${className} cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 transition-colors group/edit relative`}
+      onClick={() => setEditing(true)}
+      title="Kliknij aby edytować"
+    >
+      {value}
+      <Pen className="w-3 h-3 text-zinc-500 opacity-0 group-hover/edit:opacity-100 transition-opacity inline-block ml-1.5 -mt-0.5" />
+    </Tag>
+  );
+};
+
 // ============ FINDING CARD (redesigned) ============
 
-const FindingCard = ({ finding, catId, showAcademyHint }: { finding: EnrichedFinding; catId?: string; showAcademyHint?: { text: string; feature: string } }) => {
+const FindingCard = ({ finding, catId, showAcademyHint, textOverrides, onTextChange }: {
+  finding: EnrichedFinding;
+  catId?: string;
+  showAcademyHint?: { text: string; feature: string };
+  textOverrides?: TextOverrides;
+  onTextChange?: (findingId: string, field: 'label' | 'description' | 'recommendation', value: string) => void;
+}) => {
   const isPositive = finding.type === "positive";
   const a = getAccent(catId);
+  const overrides = textOverrides?.[finding.id];
+  const label = overrides?.label || finding.label;
+  const description = overrides?.description || finding.description;
+  const recommendation = overrides?.recommendation || finding.recommendation;
+
+  const handleChange = onTextChange ? (field: 'label' | 'description' | 'recommendation') => (val: string) => onTextChange(finding.id, field, val) : undefined;
 
   if (isPositive) {
     return (
@@ -345,10 +425,10 @@ const FindingCard = ({ finding, catId, showAcademyHint }: { finding: EnrichedFin
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5 mb-1.5">
-            <p className="text-emerald-200 text-[15px] font-bold">{finding.label}</p>
+            <EditableText value={label} onChange={handleChange?.('label')} className="text-emerald-200 text-[15px] font-bold" />
             <span className="text-[8px] uppercase tracking-[0.15em] text-emerald-400 font-bold px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/20">DOBRZE</span>
           </div>
-          <p className="text-zinc-400 text-[13px] leading-relaxed">{finding.description}</p>
+          <EditableText value={description} onChange={handleChange?.('description')} className="text-zinc-400 text-[13px] leading-relaxed" />
         </div>
       </div>
     );
@@ -372,13 +452,13 @@ const FindingCard = ({ finding, catId, showAcademyHint }: { finding: EnrichedFin
             <AlertTriangle className="w-5.5 h-5.5 text-red-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white text-[15px] font-bold mb-2">{finding.label}</p>
-            <p className="text-zinc-400 text-[13px] leading-[1.7]">{finding.description}</p>
+            <EditableText value={label} onChange={handleChange?.('label')} className="text-white text-[15px] font-bold mb-2" />
+            <EditableText value={description} onChange={handleChange?.('description')} className="text-zinc-400 text-[13px] leading-[1.7]" />
           </div>
         </div>
 
         {/* Recommendation */}
-        {finding.recommendation && (
+        {recommendation && (
           <div className={`mt-4 p-4 rounded-xl bg-gradient-to-r ${a?.bgSubtle ? `from-zinc-800/60 to-zinc-800/30` : 'from-zinc-800/60 to-zinc-800/30'} border ${a?.border || 'border-teal-500/20'}`}>
             <div className="flex items-start gap-3">
               <div className={`w-9 h-9 rounded-lg ${a?.iconBg || 'bg-teal-500/15'} flex items-center justify-center flex-shrink-0 mt-0.5`}>
@@ -386,7 +466,7 @@ const FindingCard = ({ finding, catId, showAcademyHint }: { finding: EnrichedFin
               </div>
               <div className="flex-1">
                 <span className={`text-[10px] uppercase tracking-[0.15em] font-bold ${a?.text || 'text-teal-400'}`}>Nasza rekomendacja</span>
-                <p className="text-zinc-300 text-[13px] leading-[1.7] mt-1.5">{finding.recommendation}</p>
+                <EditableText value={recommendation} onChange={handleChange?.('recommendation')} className="text-zinc-300 text-[13px] leading-[1.7] mt-1.5" />
               </div>
             </div>
           </div>
@@ -828,8 +908,8 @@ const CategoryOverviewSlide = ({ data, slideNumber, totalSlides, slide }: {
 
 // ============ FINDINGS SLIDE (redesigned) ============
 
-const FindingsSlide = ({ slideNumber, totalSlides, slide, includeAcademy = true }: {
-  slideNumber: number; totalSlides: number; slide: AuditSlideData; includeAcademy?: boolean;
+const FindingsSlide = ({ slideNumber, totalSlides, slide, includeAcademy = true, textOverrides, onTextChange }: {
+  slideNumber: number; totalSlides: number; slide: AuditSlideData; includeAcademy?: boolean; textOverrides?: TextOverrides; onTextChange?: (findingId: string, field: 'label' | 'description' | 'recommendation', value: string) => void;
 }) => {
   const catId = slide.categoryId!;
   const a = getAccent(catId);
@@ -876,7 +956,7 @@ const FindingsSlide = ({ slideNumber, totalSlides, slide, includeAcademy = true 
           // Show Academy hint on every issue finding that has a matching hint
           const fSubId = f.type === "issue" ? findSubSectionId(catId, f.subSectionName) : undefined;
           const hint = includeAcademy && fSubId ? getAcademyHint(fSubId) : undefined;
-          return <FindingCard key={f.id} finding={f} catId={catId} showAcademyHint={hint} />;
+          return <FindingCard key={f.id} finding={f} catId={catId} showAcademyHint={hint} textOverrides={textOverrides} onTextChange={onTextChange} />;
         })}
       </div>
 
@@ -1100,7 +1180,7 @@ const SummarySlide = ({ data, slideNumber, totalSlides, includeAcademy = true }:
 
 // ============ MAIN COMPONENT ============
 
-export const AuditPreview = ({ data, currentSlide, enabledCategories, checkedFindings, includeAcademy = true }: AuditPreviewProps) => {
+export const AuditPreview = ({ data, currentSlide, enabledCategories, checkedFindings, includeAcademy = true, textOverrides, onTextChange }: AuditPreviewProps) => {
   const slides = generateAuditSlides(enabledCategories, checkedFindings);
   const totalSlides = slides.length;
   const current = slides[currentSlide - 1];
@@ -1117,7 +1197,7 @@ export const AuditPreview = ({ data, currentSlide, enabledCategories, checkedFin
     case 'category-overview':
       return <CategoryOverviewSlide data={data} slideNumber={currentSlide} totalSlides={totalSlides} slide={current} />;
     case 'findings':
-      return <FindingsSlide slideNumber={currentSlide} totalSlides={totalSlides} slide={current} includeAcademy={includeAcademy} />;
+      return <FindingsSlide slideNumber={currentSlide} totalSlides={totalSlides} slide={current} includeAcademy={includeAcademy} textOverrides={textOverrides} onTextChange={onTextChange} />;
     case 'competition':
       return <CompetitionSlide data={data} slideNumber={currentSlide} totalSlides={totalSlides} />;
     case 'recommendations':

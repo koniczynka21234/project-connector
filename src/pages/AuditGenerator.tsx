@@ -48,6 +48,7 @@ const AuditGenerator = () => {
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [includeAcademy, setIncludeAcademy] = useState(true);
   const [findingsView, setFindingsView] = useState<"issues" | "positives">("issues");
+  const [textOverrides, setTextOverrides] = useState<Record<string, { label?: string; description?: string; recommendation?: string }>>({});
 
   const [formData, setFormData] = useState({
     ownerName: "",
@@ -95,6 +96,9 @@ const AuditGenerator = () => {
           }
           if (d.includeAcademy !== undefined) {
             setIncludeAcademy(d.includeAcademy === 'true');
+          }
+          if (d.textOverrides) {
+            try { setTextOverrides(JSON.parse(d.textOverrides)); } catch {}
           }
         }
       } catch (e) {
@@ -184,6 +188,7 @@ const AuditGenerator = () => {
     checkedFindings: JSON.stringify(checkedFindings),
     enabledCategories: JSON.stringify(enabledCategories),
     includeAcademy: String(includeAcademy),
+    textOverrides: JSON.stringify(textOverrides),
   });
 
   const handleSave = async () => {
@@ -647,6 +652,13 @@ const AuditGenerator = () => {
                 enabledCategories={enabledCategories}
                 checkedFindings={checkedFindings}
                 includeAcademy={includeAcademy}
+                textOverrides={textOverrides}
+                onTextChange={(findingId, field, value) => {
+                  setTextOverrides(prev => ({
+                    ...prev,
+                    [findingId]: { ...prev[findingId], [field]: value }
+                  }));
+                }}
               />
             </div>
           </div>
@@ -670,6 +682,7 @@ const AuditGenerator = () => {
               enabledCategories={enabledCategories}
               checkedFindings={checkedFindings}
               includeAcademy={includeAcademy}
+              textOverrides={textOverrides}
             />
           </div>
         ))}
