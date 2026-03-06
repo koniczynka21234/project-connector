@@ -48,6 +48,7 @@ const AuditGenerator = () => {
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [includeAcademy, setIncludeAcademy] = useState(true);
   const [findingsView, setFindingsView] = useState<"issues" | "positives">("issues");
+  const [textOverrides, setTextOverrides] = useState<Record<string, { label?: string; description?: string; recommendation?: string }>>({});
 
   const [formData, setFormData] = useState({
     ownerName: "",
