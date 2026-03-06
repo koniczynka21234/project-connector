@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Download, ChevronLeft, ChevronRight, ArrowLeft, Users, Save, Facebook, Instagram, Globe, Monitor, ChevronDown, Loader2, Check, X, GraduationCap, ThumbsUp, AlertTriangle } from "lucide-react";
+import { Download, ChevronLeft, ChevronRight, ArrowLeft, Users, Save, Facebook, Instagram, Globe, Monitor, ChevronDown, Loader2, Check, X, GraduationCap, ThumbsUp, AlertTriangle, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +49,7 @@ const AuditGenerator = () => {
   const [includeAcademy, setIncludeAcademy] = useState(true);
   const [findingsView, setFindingsView] = useState<"issues" | "positives">("issues");
   const [textOverrides, setTextOverrides] = useState<Record<string, { label?: string; description?: string; recommendation?: string }>>({});
+  const [isEditing, setIsEditing] = useState(false);
 
   const [formData, setFormData] = useState({
     ownerName: "",
@@ -614,6 +615,20 @@ const AuditGenerator = () => {
             <Button onClick={nextSlide} size="icon" variant="outline" className="h-8 w-8" disabled={TOTAL_SLIDES === 0}>
               <ChevronRight className="w-4 h-4" />
             </Button>
+            <Button
+              variant={isEditing ? "default" : "outline"}
+              size="sm"
+              className="gap-2 ml-2"
+              onClick={() => {
+                if (isEditing) {
+                  toast.success("Zmiany w audycie zostały zapisane");
+                }
+                setIsEditing(!isEditing);
+              }}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              {isEditing ? "Zapisz zmiany" : "Edytuj teksty"}
+            </Button>
           </div>
 
           <div className="flex gap-1.5 flex-wrap justify-end max-w-[200px]">
@@ -653,6 +668,7 @@ const AuditGenerator = () => {
                 checkedFindings={checkedFindings}
                 includeAcademy={includeAcademy}
                 textOverrides={textOverrides}
+                isEditing={isEditing}
                 onTextChange={(findingId, field, value) => {
                   setTextOverrides(prev => ({
                     ...prev,

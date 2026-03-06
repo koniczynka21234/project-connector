@@ -33,6 +33,7 @@ interface AuditPreviewProps {
   checkedFindings: Record<string, boolean>;
   includeAcademy?: boolean;
   textOverrides?: TextOverrides;
+  isEditing?: boolean;
   onTextChange?: (findingId: string, field: 'label' | 'description' | 'recommendation', value: string) => void;
 }
 
@@ -338,11 +339,12 @@ const getAcademyHint = (subSectionId: string) => ACADEMY_HINTS[subSectionId];
 
 // ============ INLINE EDITABLE TEXT ============
 
-const EditableText = ({ value, onChange, className, tag = "p" }: {
+const EditableText = ({ value, onChange, className, tag = "p", isEditing = false }: {
   value: string;
   onChange?: (val: string) => void;
   className?: string;
   tag?: "p" | "span";
+  isEditing?: boolean;
 }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -363,7 +365,8 @@ const EditableText = ({ value, onChange, className, tag = "p" }: {
     if (draft.trim() !== value && onChange) onChange(draft.trim());
   }, [draft, value, onChange]);
 
-  if (!onChange) {
+  // Not in editing mode or no onChange - just render text
+  if (!isEditing || !onChange) {
     const Tag = tag;
     return <Tag className={className}>{value}</Tag>;
   }
@@ -380,7 +383,7 @@ const EditableText = ({ value, onChange, className, tag = "p" }: {
         }}
         onBlur={commit}
         onKeyDown={e => { if (e.key === 'Escape') { setDraft(value); setEditing(false); } }}
-        className={`${className} bg-white/5 rounded px-1.5 py-0.5 outline-none ring-1 ring-white/20 resize-none w-full`}
+        className={`${className} bg-white/5 rounded px-1.5 py-0.5 outline-none ring-1 ring-primary/30 resize-none w-full`}
         style={{ minHeight: '1.5em' }}
       />
     );
@@ -389,24 +392,25 @@ const EditableText = ({ value, onChange, className, tag = "p" }: {
   const Tag = tag;
   return (
     <Tag
-      className={`${className} cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 transition-colors group/edit relative`}
+      className={`${className} cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 transition-colors group/edit relative ring-1 ring-dashed ring-white/10 hover:ring-primary/30`}
       onClick={() => setEditing(true)}
       title="Kliknij aby edytować"
     >
       {value}
-      <Pen className="w-3 h-3 text-zinc-500 opacity-0 group-hover/edit:opacity-100 transition-opacity inline-block ml-1.5 -mt-0.5" />
+      <Pen className="w-3 h-3 text-primary opacity-60 group-hover/edit:opacity-100 transition-opacity inline-block ml-1.5 -mt-0.5" />
     </Tag>
   );
 };
 
 // ============ FINDING CARD (redesigned) ============
 
-const FindingCard = ({ finding, catId, showAcademyHint, textOverrides, onTextChange }: {
+const FindingCard = ({ finding, catId, showAcademyHint, textOverrides, onTextChange, isEditing = false }: {
   finding: EnrichedFinding;
   catId?: string;
   showAcademyHint?: { text: string; feature: string };
   textOverrides?: TextOverrides;
   onTextChange?: (findingId: string, field: 'label' | 'description' | 'recommendation', value: string) => void;
+  isEditing?: boolean;
 }) => {
   const isPositive = finding.type === "positive";
   const a = getAccent(catId);
@@ -425,10 +429,10 @@ const FindingCard = ({ finding, catId, showAcademyHint, textOverrides, onTextCha
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5 mb-1.5">
-            <EditableText value={label} onChange={handleChange?.('label')} className="text-emerald-200 text-[15px] font-bold" />
+            <EditableText value={label} onChange={handleChange?.('label')} className="text-emerald-200 text-[15px] font-bold" isEditing={isEditing} />
             <span className="text-[8px] uppercase tracking-[0.15em] text-emerald-400 font-bold px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/20">DOBRZE</span>
           </div>
-          <EditableText value={description} onChange={handleChange?.('description')} className="text-zinc-400 text-[13px] leading-relaxed" />
+          <EditableText value={description} onChange={handleChange?.('description')} className="text-zinc-400 text-[13px] leading-relaxed" isEditing={isEditing} />
         </div>
       </div>
     );
@@ -452,8 +456,8 @@ const FindingCard = ({ finding, catId, showAcademyHint, textOverrides, onTextCha
             <AlertTriangle className="w-5.5 h-5.5 text-red-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <EditableText value={label} onChange={handleChange?.('label')} className="text-white text-[15px] font-bold mb-2" />
-            <EditableText value={description} onChange={handleChange?.('description')} className="text-zinc-400 text-[13px] leading-[1.7]" />
+            <EditableText value={label} onChange={handleChange?.('label')} className="text-white text-[15px] font-bold mb-2" isEditing={isEditing} />
+            <EditableText value={description} onChange={handleChange?.('description')} className="text-zinc-400 text-[13px] leading-[1.7]" isEditing={isEditing} />
           </div>
         </div>
 
@@ -466,7 +470,7 @@ const FindingCard = ({ finding, catId, showAcademyHint, textOverrides, onTextCha
               </div>
               <div className="flex-1">
                 <span className={`text-[10px] uppercase tracking-[0.15em] font-bold ${a?.text || 'text-teal-400'}`}>Nasza rekomendacja</span>
-                <EditableText value={recommendation} onChange={handleChange?.('recommendation')} className="text-zinc-300 text-[13px] leading-[1.7] mt-1.5" />
+                <EditableText value={recommendation} onChange={handleChange?.('recommendation')} className="text-zinc-300 text-[13px] leading-[1.7] mt-1.5" isEditing={isEditing} />
               </div>
             </div>
           </div>
@@ -908,8 +912,8 @@ const CategoryOverviewSlide = ({ data, slideNumber, totalSlides, slide }: {
 
 // ============ FINDINGS SLIDE (redesigned) ============
 
-const FindingsSlide = ({ slideNumber, totalSlides, slide, includeAcademy = true, textOverrides, onTextChange }: {
-  slideNumber: number; totalSlides: number; slide: AuditSlideData; includeAcademy?: boolean; textOverrides?: TextOverrides; onTextChange?: (findingId: string, field: 'label' | 'description' | 'recommendation', value: string) => void;
+const FindingsSlide = ({ slideNumber, totalSlides, slide, includeAcademy = true, textOverrides, onTextChange, isEditing = false }: {
+  slideNumber: number; totalSlides: number; slide: AuditSlideData; includeAcademy?: boolean; textOverrides?: TextOverrides; onTextChange?: (findingId: string, field: 'label' | 'description' | 'recommendation', value: string) => void; isEditing?: boolean;
 }) => {
   const catId = slide.categoryId!;
   const a = getAccent(catId);
@@ -956,7 +960,7 @@ const FindingsSlide = ({ slideNumber, totalSlides, slide, includeAcademy = true,
           // Show Academy hint on every issue finding that has a matching hint
           const fSubId = f.type === "issue" ? findSubSectionId(catId, f.subSectionName) : undefined;
           const hint = includeAcademy && fSubId ? getAcademyHint(fSubId) : undefined;
-          return <FindingCard key={f.id} finding={f} catId={catId} showAcademyHint={hint} textOverrides={textOverrides} onTextChange={onTextChange} />;
+          return <FindingCard key={f.id} finding={f} catId={catId} showAcademyHint={hint} textOverrides={textOverrides} onTextChange={onTextChange} isEditing={isEditing} />;
         })}
       </div>
 
@@ -1180,7 +1184,7 @@ const SummarySlide = ({ data, slideNumber, totalSlides, includeAcademy = true }:
 
 // ============ MAIN COMPONENT ============
 
-export const AuditPreview = ({ data, currentSlide, enabledCategories, checkedFindings, includeAcademy = true, textOverrides, onTextChange }: AuditPreviewProps) => {
+export const AuditPreview = ({ data, currentSlide, enabledCategories, checkedFindings, includeAcademy = true, textOverrides, isEditing = false, onTextChange }: AuditPreviewProps) => {
   const slides = generateAuditSlides(enabledCategories, checkedFindings);
   const totalSlides = slides.length;
   const current = slides[currentSlide - 1];
@@ -1197,7 +1201,7 @@ export const AuditPreview = ({ data, currentSlide, enabledCategories, checkedFin
     case 'category-overview':
       return <CategoryOverviewSlide data={data} slideNumber={currentSlide} totalSlides={totalSlides} slide={current} />;
     case 'findings':
-      return <FindingsSlide slideNumber={currentSlide} totalSlides={totalSlides} slide={current} includeAcademy={includeAcademy} textOverrides={textOverrides} onTextChange={onTextChange} />;
+      return <FindingsSlide slideNumber={currentSlide} totalSlides={totalSlides} slide={current} includeAcademy={includeAcademy} textOverrides={textOverrides} onTextChange={onTextChange} isEditing={isEditing} />;
     case 'competition':
       return <CompetitionSlide data={data} slideNumber={currentSlide} totalSlides={totalSlides} />;
     case 'recommendations':
