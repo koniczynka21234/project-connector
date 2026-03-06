@@ -23,12 +23,16 @@ interface AuditFormData {
   websiteUrl: string;
 }
 
+export type TextOverrides = Record<string, { label?: string; description?: string; recommendation?: string }>;
+
 interface AuditPreviewProps {
   data: AuditFormData;
   currentSlide: number;
   enabledCategories: Record<string, boolean>;
   checkedFindings: Record<string, boolean>;
   includeAcademy?: boolean;
+  textOverrides?: TextOverrides;
+  onTextChange?: (findingId: string, field: 'label' | 'description' | 'recommendation', value: string) => void;
 }
 
 // ============ CATEGORY COLOR SYSTEM ============
