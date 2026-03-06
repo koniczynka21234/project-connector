@@ -780,7 +780,7 @@ const CategoryOverviewSlide = ({ data, slideNumber, totalSlides, slide }: {
             <div className="grid grid-cols-2 gap-4">
               <div className="p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
                 <p className="text-4xl font-bold text-emerald-400">{positives}</p>
-                <p className="text-zinc-400 text-sm mt-1">Mocne strony</p>
+                <p className="text-zinc-400 text-sm mt-1">Co działa dobrze</p>
               </div>
               <div className="p-5 rounded-xl bg-red-500/5 border border-red-500/20 text-center">
                 <p className="text-4xl font-bold text-red-400">{issues}</p>
