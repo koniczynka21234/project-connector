@@ -33,6 +33,7 @@ interface AuditPreviewProps {
   checkedFindings: Record<string, boolean>;
   includeAcademy?: boolean;
   textOverrides?: TextOverrides;
+  isEditing?: boolean;
   onTextChange?: (findingId: string, field: 'label' | 'description' | 'recommendation', value: string) => void;
 }
 
