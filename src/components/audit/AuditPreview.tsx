@@ -404,12 +404,13 @@ const EditableText = ({ value, onChange, className, tag = "p", isEditing = false
 
 // ============ FINDING CARD (redesigned) ============
 
-const FindingCard = ({ finding, catId, showAcademyHint, textOverrides, onTextChange }: {
+const FindingCard = ({ finding, catId, showAcademyHint, textOverrides, onTextChange, isEditing = false }: {
   finding: EnrichedFinding;
   catId?: string;
   showAcademyHint?: { text: string; feature: string };
   textOverrides?: TextOverrides;
   onTextChange?: (findingId: string, field: 'label' | 'description' | 'recommendation', value: string) => void;
+  isEditing?: boolean;
 }) => {
   const isPositive = finding.type === "positive";
   const a = getAccent(catId);
