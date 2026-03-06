@@ -615,6 +615,20 @@ const AuditGenerator = () => {
             <Button onClick={nextSlide} size="icon" variant="outline" className="h-8 w-8" disabled={TOTAL_SLIDES === 0}>
               <ChevronRight className="w-4 h-4" />
             </Button>
+            <Button
+              variant={isEditing ? "default" : "outline"}
+              size="sm"
+              className="gap-2 ml-2"
+              onClick={() => {
+                if (isEditing) {
+                  toast.success("Zmiany w audycie zostały zapisane");
+                }
+                setIsEditing(!isEditing);
+              }}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              {isEditing ? "Zapisz zmiany" : "Edytuj teksty"}
+            </Button>
           </div>
 
           <div className="flex gap-1.5 flex-wrap justify-end max-w-[200px]">
