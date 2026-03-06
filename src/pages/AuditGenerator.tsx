@@ -682,6 +682,7 @@ const AuditGenerator = () => {
               enabledCategories={enabledCategories}
               checkedFindings={checkedFindings}
               includeAcademy={includeAcademy}
+              textOverrides={textOverrides}
             />
           </div>
         ))}
