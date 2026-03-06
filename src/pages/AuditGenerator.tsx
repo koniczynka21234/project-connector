@@ -652,6 +652,13 @@ const AuditGenerator = () => {
                 enabledCategories={enabledCategories}
                 checkedFindings={checkedFindings}
                 includeAcademy={includeAcademy}
+                textOverrides={textOverrides}
+                onTextChange={(findingId, field, value) => {
+                  setTextOverrides(prev => ({
+                    ...prev,
+                    [findingId]: { ...prev[findingId], [field]: value }
+                  }));
+                }}
               />
             </div>
           </div>
