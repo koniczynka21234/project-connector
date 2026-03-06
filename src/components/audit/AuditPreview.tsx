@@ -456,8 +456,8 @@ const FindingCard = ({ finding, catId, showAcademyHint, textOverrides, onTextCha
             <AlertTriangle className="w-5.5 h-5.5 text-red-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <EditableText value={label} onChange={handleChange?.('label')} className="text-white text-[15px] font-bold mb-2" />
-            <EditableText value={description} onChange={handleChange?.('description')} className="text-zinc-400 text-[13px] leading-[1.7]" />
+            <EditableText value={label} onChange={handleChange?.('label')} className="text-white text-[15px] font-bold mb-2" isEditing={isEditing} />
+            <EditableText value={description} onChange={handleChange?.('description')} className="text-zinc-400 text-[13px] leading-[1.7]" isEditing={isEditing} />
           </div>
         </div>
 
