@@ -339,11 +339,12 @@ const getAcademyHint = (subSectionId: string) => ACADEMY_HINTS[subSectionId];
 
 // ============ INLINE EDITABLE TEXT ============
 
-const EditableText = ({ value, onChange, className, tag = "p" }: {
+const EditableText = ({ value, onChange, className, tag = "p", isEditing = false }: {
   value: string;
   onChange?: (val: string) => void;
   className?: string;
   tag?: "p" | "span";
+  isEditing?: boolean;
 }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -364,7 +365,8 @@ const EditableText = ({ value, onChange, className, tag = "p" }: {
     if (draft.trim() !== value && onChange) onChange(draft.trim());
   }, [draft, value, onChange]);
 
-  if (!onChange) {
+  // Not in editing mode or no onChange - just render text
+  if (!isEditing || !onChange) {
     const Tag = tag;
     return <Tag className={className}>{value}</Tag>;
   }
@@ -381,7 +383,7 @@ const EditableText = ({ value, onChange, className, tag = "p" }: {
         }}
         onBlur={commit}
         onKeyDown={e => { if (e.key === 'Escape') { setDraft(value); setEditing(false); } }}
-        className={`${className} bg-white/5 rounded px-1.5 py-0.5 outline-none ring-1 ring-white/20 resize-none w-full`}
+        className={`${className} bg-white/5 rounded px-1.5 py-0.5 outline-none ring-1 ring-primary/30 resize-none w-full`}
         style={{ minHeight: '1.5em' }}
       />
     );
@@ -390,12 +392,12 @@ const EditableText = ({ value, onChange, className, tag = "p" }: {
   const Tag = tag;
   return (
     <Tag
-      className={`${className} cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 transition-colors group/edit relative`}
+      className={`${className} cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 transition-colors group/edit relative ring-1 ring-dashed ring-white/10 hover:ring-primary/30`}
       onClick={() => setEditing(true)}
       title="Kliknij aby edytować"
     >
       {value}
-      <Pen className="w-3 h-3 text-zinc-500 opacity-0 group-hover/edit:opacity-100 transition-opacity inline-block ml-1.5 -mt-0.5" />
+      <Pen className="w-3 h-3 text-primary opacity-60 group-hover/edit:opacity-100 transition-opacity inline-block ml-1.5 -mt-0.5" />
     </Tag>
   );
 };
